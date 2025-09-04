@@ -1,0 +1,32 @@
+name: beauty_logger
+description: "A beautiful and enhanced Flutter logger with colors, JSON formatting, and proper debug console support. Features multiple log levels, emoji icons, and colorized output for better debugging experience."
+version: 1.0.0
+homepage: https://github.com/yourusername/beauty_logger
+repository: https://github.com/yourusername/beauty_logger
+issue_tracker: https://github.com/yourusername/beauty_logger/issues
+documentation: https://github.com/yourusername/beauty_logger#readme
+
+topics:
+  - logging
+  - logger
+  - debug
+  - development
+  - tools
+
+environment:
+  sdk: ^3.9.0
+  flutter: ">=1.17.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+# For information on the generic Dart part of this file, see the
+# following page: https://dart.dev/tools/pub/pubspec
+
+# The following section is specific to Flutter packages.
