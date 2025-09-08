@@ -1,54 +1,54 @@
-import 'package:beauty_logger/beauty_logger.dart';
+import 'core_logger.dart';
 
-/// A logger instance with a pre-defined name (tag).
 class TaggedLogger {
+  final Loggo _loggo;
   final String name;
 
-  TaggedLogger(this.name);
+  TaggedLogger(this.name) : _loggo = Loggo.instance;
 
-  /// Log info messages (green)
-  void info(String message, {Object? data}) {
-    AppLogger.info(message, name: name, data: data);
-  }
+  void log(LogLevel level, String message,
+          {Object? data,
+          Map<String, dynamic>? context,
+          StackTrace? stackTrace}) =>
+      _loggo.log(level, message,
+          name: name, data: data, context: context, stackTrace: stackTrace);
 
-  /// Log error messages (red)
-  void error(String message, {Object? data, StackTrace? stackTrace}) {
-    AppLogger.error(message, name: name, data: data, stackTrace: stackTrace);
-  }
+  void d(String message, {Object? data, Map<String, dynamic>? context}) =>
+      _loggo.debug(message, name: name, data: data, context: context);
 
-  /// Log success messages (green)
-  void success(String message, {Object? data}) {
-    AppLogger.success(message, name: name, data: data);
-  }
+  void i(String message, {Object? data, Map<String, dynamic>? context}) =>
+      _loggo.info(message, name: name, data: data, context: context);
 
-  /// Log warning messages (yellow)
-  void warning(String message, {Object? data}) {
-    AppLogger.warning(message, name: name, data: data);
-  }
+  void s(String message, {Object? data, Map<String, dynamic>? context}) =>
+      _loggo.success(message, name: name, data: data, context: context);
 
-  /// Log debug messages (cyan)
-  void debug(String message, {Object? data}) {
-    AppLogger.debug(message, name: name, data: data);
-  }
+  void w(String message, {Object? data, Map<String, dynamic>? context}) =>
+      _loggo.warning(message, name: name, data: data, context: context);
 
-  /// Log hand raise events (blue)
-  void handRaise(String message, {Object? data}) {
-    AppLogger.handRaise(message, name: name, data: data);
-  }
+  void e(String message,
+          {Object? data,
+          Map<String, dynamic>? context,
+          StackTrace? stackTrace}) =>
+      _loggo.error(message,
+          name: name, data: data, context: context, stackTrace: stackTrace);
 
-  /// Log meeting events (magenta)
-  void meeting(String message, {Object? data}) {
-    AppLogger.meeting(message, name: name, data: data);
-  }
+  void data(Object data, {Map<String, dynamic>? context}) =>
+      _loggo.data(data, name: name, context: context);
 
-  /// Log network events (white)
-  void network(String message, {Object? data}) {
-    AppLogger.network(message, name: name, data: data);
-  }
+  void debugData(Object data, {Map<String, dynamic>? context}) =>
+      _loggo.debugData(data, name: name, context: context);
 
-  /// Log JSON data with pretty formatting
-  void json(String message, Object? jsonData) {
-    AppLogger.debug(message, name: name, data: jsonData);
-  }
+  void infoData(Object data, {Map<String, dynamic>? context}) =>
+      _loggo.infoData(data, name: name, context: context);
+
+  void successData(Object data, {Map<String, dynamic>? context}) =>
+      _loggo.successData(data, name: name, context: context);
+
+  void warningData(Object data, {Map<String, dynamic>? context}) =>
+      _loggo.warningData(data, name: name, context: context);
+
+  void errorData(Object data,
+          {Map<String, dynamic>? context, StackTrace? stackTrace}) =>
+      _loggo.errorData(data,
+          name: name, context: context, stackTrace: stackTrace);
 }
-

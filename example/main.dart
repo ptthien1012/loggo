@@ -1,53 +1,41 @@
-import 'package:beauty_logger/beauty_logger.dart';
+import 'package:loggo/loggo.dart';
+import 'package:loggo/short.dart';
 
 void main() {
+  // Configure for development
+  loggo.dev();
+
   // --- Basic Logging ---
-  AppLogger.info('User logged in successfully');
-  AppLogger.success('Data saved to the database');
-  AppLogger.warning('API rate limit approaching');
-  AppLogger.error('Failed to connect to the server');
-  AppLogger.debug('Processing user input');
+  d('This is a debug message');
+  i('User logged in', data: {'id': 'user-123', 'email': 'test@example.com'});
+  s('Payment successful', data: {'amount': 99.99, 'currency': 'USD'});
+  w('Low on stock', data: {'item': 'milk', 'quantity': 2});
+  e('Failed to fetch data', stackTrace: StackTrace.current);
 
-  // --- Logging with Data ---
-  AppLogger.info('User profile updated', data: {
-    'userId': 123,
-    'changes': ['name', 'email'],
-  });
+  // --- Tagged Logging ---
+  'Auth'.t.i('User token refreshed');
+  'API'.t.d('Request received', data: {'path': '/users', 'method': 'GET'});
 
-  // --- JSON Logging ---
-  final userData = {
-    'id': 1,
-    'name': 'John Doe',
-    'settings': {'theme': 'dark', 'notifications': true},
-  };
-  AppLogger.json('User data received', userData);
-
-  // --- Special Categories ---
-  AppLogger.network('API call completed', data: {
-    'endpoint': '/api/users',
+  // --- Data-Only Logging ---
+  loggo.infoData({'user_id': '123', 'action': 'logout'});
+  'API'.t.successData({
     'status': 200,
-    'duration': '245ms',
+    'data': {'item_id': 42}
   });
 
-  AppLogger.meeting('Meeting started', data: {
-    'participants': 5,
-    'duration': '30min',
-  });
+  // --- Anti-Spam & Measurement ---
+  once(LogLevel.info, 'Initializing service...');
+  once(LogLevel.info, 'Initializing service...'); // This will be ignored
 
-  AppLogger.handRaise('User raised hand', data: {
-    'userId': 'user123',
-    'timestamp': DateTime.now().toIso8601String(),
-  });
+  thr(LogLevel.warning, 'Connection unstable', const Duration(seconds: 2));
+  thr(LogLevel.warning, 'Connection unstable',
+      const Duration(seconds: 2)); // This will be ignored
 
-  // --- Error with Stack Trace ---
-  try {
-    throw Exception('Something went wrong!');
-  } catch (e, stackTrace) {
-    AppLogger.error(
-      'An unexpected error occurred',
-      data: {'error': e.toString()},
-      stackTrace: stackTrace,
-    );
-  }
+  ddp(LogLevel.debug, 'Processing item #1');
+  ddp(LogLevel.debug, 'Processing item #1'); // This will be ignored
+  ddp(LogLevel.debug, 'Processing item #2');
+
+  m('database query', () async {
+    await Future.delayed(const Duration(milliseconds: 150));
+  });
 }
-

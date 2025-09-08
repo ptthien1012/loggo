@@ -1,131 +1,131 @@
 import 'dart:convert';
-import 'package:beauty_logger/src/log_formatter.dart';
-import 'package:beauty_logger/src/log_record.dart';
-import 'package:beauty_logger/beauty_logger.dart';
 
-/// Default log formatter that uses ANSI escape codes for colors.
+import 'ansi_theme.dart';
+import 'core_logger.dart';
+import 'log_formatter.dart';
+import 'log_record.dart';
+
 class AnsiLogFormatter extends LogFormatter {
-  static const String _reset = '\x1B[0m';
-  static const String _green = '\x1B[32m';
-  static const String _yellow = '\x1B[33m';
-  static const String _red = '\x1B[31m';
-  static const String _cyan = '\x1B[36m';
-  static const String _blue = '\x1B[34m';
-  static const String _magenta = '\x1B[35m';
-  static const String _white = '\x1B[37m';
-  static const String _gray = '\x1B[90m';
+  final AnsiThemeData theme;
+  final int maxDepth;
+  final int maxBytes;
+  final int previewList;
+  final int previewMapKeys;
+  final Set<String> redactKeys;
+  final List<String> keyPriority;
+
+  AnsiLogFormatter.theme(
+    this.theme, {
+    this.maxDepth = 5,
+    this.maxBytes = 8 * 1024, // 8k
+    this.previewList = 8,
+    this.previewMapKeys = 12,
+    this.redactKeys = const {'password', 'token', 'authorization', 'secret'},
+    this.keyPriority = const ['id', 'type', 'status', 'message', 'code'],
+  });
 
   @override
   String format(LogRecord record) {
-    final color = _getColorForLevel(record.level);
-    final icon = _getIconForLevel(record.level);
+    final sb = StringBuffer();
+    final color = theme.colors[record.level] ?? '';
+    final emoji = theme.emoji[record.level] ?? '';
 
-    String formattedMessage =
-        '$color$icon [${record.level.name}] ${record.message}$_reset';
+    // Header
+    sb.write('$color[${_levelName(record.level)}]');
+    if (emoji.isNotEmpty) sb.write(' $emoji');
+    if (record.message.isNotEmpty) sb.write(' ${record.message}');
+    if (color.isNotEmpty) sb.write(AnsiColors.reset);
 
-    if (record.data != null) {
-      final formattedData = _formatJson(record.data);
-      formattedMessage += '\n$formattedData';
-    }
+    if (theme.prettySpacing) sb.writeln();
 
-    return formattedMessage;
+    // Context, Data, StackTrace
+    _append(sb, 'context', record.context, theme.prettySpacing);
+    _append(sb, 'data', record.data, theme.prettySpacing);
+    _append(sb, 'stack', record.stackTrace?.toString(), theme.prettySpacing);
+
+    return sb.toString();
   }
 
-  String _getColorForLevel(LogLevel level) {
-    switch (level) {
-      case LogLevel.info:
-      case LogLevel.success:
-        return _green;
-      case LogLevel.warning:
-        return _yellow;
-      case LogLevel.error:
-        return _red;
-      case LogLevel.debug:
-        return _cyan;
-      case LogLevel.handRaise:
-        return _blue;
-      case LogLevel.meeting:
-        return _magenta;
-      case LogLevel.network:
-        return _white;
-    }
-  }
-
-  String _getIconForLevel(LogLevel level) {
-    switch (level) {
-      case LogLevel.info:
-        return 'ℹ️';
-      case LogLevel.success:
-        return '✅';
-      case LogLevel.warning:
-        return '⚠️';
-      case LogLevel.error:
-        return '❌';
-      case LogLevel.debug:
-        return '🔍';
-      case LogLevel.handRaise:
-        return '🙋';
-      case LogLevel.meeting:
-        return '🎯';
-      case LogLevel.network:
-        return '🌐';
+  void _append(StringBuffer sb, String key, Object? value, bool pretty) {
+    if (value == null) return;
+    if (pretty) {
+      final prefix = {'context': '📎', 'data': '📦', 'stack': '🧵'}[key] ?? key;
+      sb.write('  $prefix $key: ');
+      sb.writeln(_prettyJson(value));
+    } else {
+      final prefix =
+          {'context': 'ctx', 'data': 'data', 'stack': 'stack'}[key] ?? key;
+      sb.write(' $prefix:${_compactJson(value)}');
     }
   }
 
-  String _formatJson(Object? data) {
-    if (data == null) return '${_gray}null$_reset';
+  String _levelName(LogLevel level) =>
+      level.toString().split('.').last.toUpperCase();
 
+  String _prettyJson(Object? data) {
     try {
-      dynamic jsonData = data;
-      if (data is String) {
-        try {
-          jsonData = jsonDecode(data);
-        } catch (_) {
-          return data;
-        }
-      }
-
-      if (jsonData is Map || jsonData is List) {
-        return _colorizeJson(jsonData);
-      }
-
-      return data.toString();
+      final redactedData = _jsonPreview(data, 0);
+      final encoder = JsonEncoder.withIndent('  ');
+      return encoder.convert(redactedData);
     } catch (e) {
-      return '${_red}Error formatting JSON: $e$_reset';
+      return data.toString();
     }
   }
 
-  String _colorizeJson(dynamic json, [String indent = '']) {
-    if (json is String) {
-      try {
-        final decoded = jsonDecode(json);
-        return _colorizeJson(decoded, indent);
-      } catch (e) {
-        return '$_green"$json"$_reset';
+  String _compactJson(Object? data) {
+    try {
+      final redactedData = _jsonPreview(data, 0);
+      final encoder = JsonEncoder();
+      return encoder.convert(redactedData);
+    } catch (e) {
+      return data.toString();
+    }
+  }
+
+  Object? _jsonPreview(Object? value, int depth) {
+    if (depth > maxDepth) return '... (depth limit)';
+    if (value is Map) {
+      if (depth > 0 && value.isEmpty) return '{}';
+      final sortedKeys = value.keys.toList()
+        ..sort((a, b) {
+          final ia = keyPriority.indexOf(a.toString());
+          final ib = keyPriority.indexOf(b.toString());
+          if (ia != -1 && ib != -1) return ia.compareTo(ib);
+          if (ia != -1) return -1;
+          if (ib != -1) return 1;
+          return a.toString().compareTo(b.toString());
+        });
+
+      final entries = sortedKeys.map((k) {
+        if (redactKeys.contains(k.toString().toLowerCase())) {
+          return MapEntry(k, theme.redactReplacement);
+        }
+        return MapEntry(k, _jsonPreview(value[k], depth + 1));
+      });
+
+      if (sortedKeys.length > previewMapKeys) {
+        return Map.fromEntries([
+          ...entries.take(previewMapKeys),
+          MapEntry('...', '${sortedKeys.length - previewMapKeys} more keys'),
+        ]);
+      }
+      return Map.fromEntries(entries);
+    }
+    if (value is List) {
+      if (depth > 0 && value.isEmpty) return '[]';
+      if (value.length > previewList) {
+        return [
+          ...value.take(previewList).map((e) => _jsonPreview(e, depth + 1)),
+          '... (${value.length - previewList} more items)'
+        ];
+      }
+      return value.map((e) => _jsonPreview(e, depth + 1)).toList();
+    }
+    if (value is String) {
+      if (value.length > maxBytes) {
+        return '${value.substring(0, maxBytes)}... (+${value.length - maxBytes} chars)';
       }
     }
-    if (json is num) return '$_blue$json$_reset';
-    if (json is bool) return '$_magenta$json$_reset';
-    if (json == null) return '${_gray}null$_reset';
-
-    final nextIndent = '$indent  ';
-
-    if (json is Map) {
-      final entries = json.entries.map((entry) {
-        final key = '$_yellow"${entry.key}"$_reset';
-        final value = _colorizeJson(entry.value, nextIndent);
-        return '$nextIndent$key: $value';
-      });
-      return '$_white{\n${entries.join(',\n')}\n$indent}$_reset';
-    }
-
-    if (json is List) {
-      final items =
-          json.map((item) => '$nextIndent${_colorizeJson(item, nextIndent)}');
-      return '$_white[\n${items.join(',\n')}\n$indent]$_reset';
-    }
-
-    return json.toString();
+    return value;
   }
 }
-

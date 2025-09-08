@@ -1,155 +1,387 @@
-# BeautyLogger 🎨
+# loggo
 
-A beautiful and enhanced Flutter logger with colors, JSON formatting, and proper debug console support. Features multiple log levels, emoji icons, and colorized output for better debugging experience.
+Colorful, compact, production-friendly logging for Flutter & Dart 🚀
 
-## Features ✨
+[![pub version](https://img.shields.io/pub/v/loggo.svg)](https://pub.dev/packages/loggo)
+[![pub points](https://img.shields.io/pub/points/loggo)](https://pub.dev/packages/loggo/score)
+[![likes](https://img.shields.io/pub/likes/loggo)](https://pub.dev/packages/loggo/score)
+[![popularity](https://img.shields.io/pub/popularity/loggo)](https://pub.dev/packages/loggo/score)
 
-- **🎨 Colorized Output**: Different colors for different log levels
-- **📊 Multiple Log Levels**: Debug, Info, Success, Warning, Error, and custom levels
-- **🔍 JSON Formatting**: Pretty-printed JSON with syntax highlighting
-- **⚡ Performance**: Only logs in debug mode, zero overhead in release
-- **🎯 Categorized Logging**: Special categories for meetings, network calls, and hand-raise events
-- **📋 Stack Trace Support**: Full stack trace support for error logging
-- **🌐 VSCode Integration**: Optimized for VSCode debug console
+---
 
-## Getting Started 🚀
+## ✨ Features
 
-Add this to your package's `pubspec.yaml` file:
+- **🎨 Themeable Formatters**: Choose between `fancy`, `minimal`, and `ci` themes
+- **📦 Data-Only Logging**: Log structured data without a message
+- **🚀 Super Compact DX**: Ultra-short aliases (`d`, `i`, `s`, `w`, `e`) and tagged logging (`'TAG'.t.i()`)
+- **🛡️ Anti-Spam**: Built-in `once`, `throttle`, `dedupe` helpers
+- **⏱️ Performance Measurement**: `measure()` helper to track execution time
+- **💾 Sinks**: Forward logs to files or other services
+- **🐦 Pure Dart/Flutter**: No runtime dependencies
+- **🌐 Web Support**: ANSI colors disabled by default on web
+
+## 📦 Installation
 
 ```yaml
 dependencies:
-  beauty_logger: ^1.0.0
+  loggo: ^0.1.0
 ```
 
-Then run:
-
-```bash
-flutter pub get
-```
-
-## Usage 📖
-
-Import the package:
+## 🚀 Quick Start
 
 ```dart
-import 'package:beauty_logger/beauty_logger.dart';
+import 'package:loggo/loggo.dart';
+import 'package:loggo/short.dart';
+
+void main() {
+  // Configure for development
+  loggo.dev();
+
+  // Use short aliases
+  d('This is a debug message');
+  i('User logged in', data: {'id': 'user-123'});
+  s('Payment successful');
+  w('Low on stock', data: {'item': 'milk', 'quantity': 2});
+  e('Failed to fetch data', stackTrace: StackTrace.current);
+
+  // Tagged logging
+  'Auth'.t.i('User token refreshed');
+  'API'.t.d('Request received', data: {'path': '/users', 'method': 'GET'});
+}
 ```
+
+## 🎨 Themes
+
+### Fancy Theme (Default for Development)
+
+```
+[INFO] ℹ️ User logged in
+  📎 context: {"user": "testuser"}
+  📊 data: {"id": "user-123", "email": "test@example.com"}
+```
+
+### Minimal Theme
+
+```
+[INFO] I User logged in data:{"id":"user-123"} ctx:{"user":"testuser"}
+```
+
+### CI Theme (No Colors/Emojis)
+
+```
+[INFO] User logged in data:{"id":"user-123"} ctx:{"user":"testuser"}
+```
+
+## 📖 Complete Usage Guide
 
 ### Basic Logging
 
 ```dart
-// Info messages (green with ℹ️ icon)
-AppLogger.info('User logged in successfully');
+import 'package:loggo/loggo.dart';
 
-// Success messages (green with ✅ icon)
-AppLogger.success('Data saved to database');
+// Direct usage
+loggo.debug('Debug message');
+loggo.info('Info message');
+loggo.success('Success message');
+loggo.warning('Warning message');
+loggo.error('Error message');
 
-// Warning messages (yellow with ⚠️ icon)
-AppLogger.warning('API rate limit approaching');
+// With data
+loggo.info('User action', data: {'userId': 123, 'action': 'login'});
 
-// Error messages (red with ❌ icon)
-AppLogger.error('Failed to connect to server');
+// With context
+loggo.info('API call', context: {'requestId': 'req-123'});
 
-// Debug messages (cyan with 🔍 icon)
-AppLogger.debug('Processing user input');
+// With stack trace
+loggo.error('Something failed', stackTrace: StackTrace.current);
 ```
 
-### Logging with Data
+### Short Aliases
 
 ```dart
-// Log with additional data
-AppLogger.info('User profile updated', data: {
-  'userId': 123,
-  'changes': ['name', 'email']
+import 'package:loggo/short.dart';
+
+// Ultra-short logging
+d('Debug message');
+i('Info message');
+s('Success message');
+w('Warning message');
+e('Error message');
+
+// With data
+i('User logged in', data: {'id': 'user-123'});
+
+// With context
+d('Processing', context: {'step': 'validation'});
+```
+
+### Tagged Logging
+
+```dart
+// Using extension method
+'Auth'.t.i('User token refreshed');
+'API'.t.d('Request received', data: {'path': '/users'});
+'DB'.t.e('Query failed', stackTrace: StackTrace.current);
+
+// Using direct method
+final authLogger = loggo.tagged('Auth');
+authLogger.i('User authenticated');
+authLogger.e('Authentication failed');
+```
+
+### Data-Only Logging
+
+```dart
+// Log structured data without a message
+loggo.infoData({'user_id': '123', 'action': 'logout'});
+loggo.debugData({'request': 'GET /api/users', 'duration': '150ms'});
+
+// Tagged data logging
+'API'.t.successData({'status': 200, 'data': {'item_id': 42}});
+'DB'.t.infoData({'query': 'SELECT * FROM users', 'rows': 150});
+```
+
+### Anti-Spam Features
+
+```dart
+import 'package:loggo/short.dart';
+
+// Log only the first time
+once(LogLevel.info, 'Initializing service...');
+once(LogLevel.info, 'Initializing service...'); // This will be ignored
+
+// Log at most once every 2 seconds
+thr(LogLevel.warning, 'Connection unstable', const Duration(seconds: 2));
+thr(LogLevel.warning, 'Connection unstable', const Duration(seconds: 2)); // This will be ignored
+
+// Don't log consecutive duplicate messages
+ddp(LogLevel.debug, 'Processing item #1');
+ddp(LogLevel.debug, 'Processing item #1'); // This will be ignored
+ddp(LogLevel.debug, 'Processing item #2'); // This will be logged
+```
+
+### Performance Measurement
+
+```dart
+// Measure execution time
+final result = await m('database query', () async {
+  await Future.delayed(const Duration(milliseconds: 150));
+  return 'query result';
 });
 
-// Log with custom name
-AppLogger.error('Database error',
-  name: 'DB_SERVICE',
-  data: {'query': 'SELECT * FROM users'}
+// Direct usage
+final result = await loggo.measure('API call', () async {
+  return await fetchData();
+});
+```
+
+### Configuration
+
+```dart
+// Development configuration (fancy theme, debug level)
+loggo.dev();
+
+// Production configuration (minimal theme, info level)
+loggo.prod();
+
+// Quiet configuration (CI theme, error level only)
+loggo.quiet();
+
+// Custom configuration
+loggo.configure(LoggerConfig(
+  minLevel: LogLevel.warning,
+  enableColors: true,
+  enableReleaseLogging: true,
+  formatter: AnsiLogFormatter.theme(const AnsiThemeData.fancy()),
+));
+```
+
+### Custom Themes
+
+```dart
+// Create custom theme
+final customTheme = const AnsiThemeData.fancy().copyWith(
+  emoji: {LogLevel.info: '🚀'},
+  colors: {LogLevel.error: AnsiColor.red},
+);
+
+loggo.configure(LoggerConfig(
+  formatter: AnsiLogFormatter.theme(customTheme),
+));
+```
+
+### Sinks (Log Forwarding)
+
+```dart
+// File sink with rotation
+final fileSink = RollingFileSink('./app.log', maxFileSize: 1024 * 1024, maxFiles: 5);
+loggo.addSink(fileSink);
+
+// Sampling sink (log only 50% of info messages)
+final samplingSink = SamplingSink(fileSink, rates: {LogLevel.info: 0.5});
+loggo.addSink(samplingSink);
+
+// Rate limiting sink (max 10 logs per minute)
+final rateLimitSink = RateLimitSink(fileSink, const Duration(minutes: 1), 10);
+loggo.addSink(rateLimitSink);
+
+// Custom sink
+loggo.addSink((LogRecord record) {
+  // Send to external service
+  sendToExternalService(record.toJson());
+});
+```
+
+### Log Levels
+
+| Level     | Value | Description                       |
+| --------- | ----- | --------------------------------- |
+| Debug     | 700   | Development debugging information |
+| Info      | 800   | General information messages      |
+| Success   | 800   | Success confirmations             |
+| Warning   | 900   | Warning messages                  |
+| Error     | 1000  | Error messages                    |
+| HandRaise | 700   | Hand raise events                 |
+| Meeting   | 700   | Meeting-related events            |
+| Network   | 700   | Network-related logs              |
+
+### Advanced Features
+
+#### Object Logging Extension
+
+```dart
+// Log any object with its type as the logger name
+final user = {'id': 123, 'name': 'John'};
+user.tl('User data processed'); // Uses 'Map<String, int>' as logger name
+```
+
+#### Stream Support
+
+```dart
+// Listen to all log records
+loggo.stream.listen((LogRecord record) {
+  print('Received log: ${record.message}');
+});
+```
+
+#### Context and Data
+
+```dart
+// Context is for metadata that doesn't change often
+loggo.info('Processing request', context: {'userId': 123, 'sessionId': 'abc'});
+
+// Data is for the actual payload
+loggo.info('API response', data: {'status': 200, 'body': responseData});
+```
+
+## 🎯 Best Practices
+
+### 1. Use Appropriate Log Levels
+
+```dart
+// Debug: Detailed information for debugging
+d('Parsing JSON response', data: {'raw': jsonString});
+
+// Info: General information about program execution
+i('User logged in', data: {'userId': 123});
+
+// Success: Successful operations
+s('Payment processed', data: {'amount': 99.99});
+
+// Warning: Something unexpected but not critical
+w('API rate limit approaching', data: {'remaining': 5});
+
+// Error: Error conditions
+e('Database connection failed', stackTrace: StackTrace.current);
+```
+
+### 2. Use Tagged Logging for Modules
+
+```dart
+// Instead of this
+loggo.info('Auth: User token refreshed');
+
+// Use this
+'Auth'.t.i('User token refreshed');
+```
+
+### 3. Use Anti-Spam Features
+
+```dart
+// For initialization messages
+once(LogLevel.info, 'Service initialized');
+
+// For frequent warnings
+thr(LogLevel.warning, 'High memory usage', const Duration(seconds: 30));
+
+// For duplicate prevention
+ddp(LogLevel.debug, 'Processing item ${item.id}');
+```
+
+### 4. Use Data-Only Logging for Structured Data
+
+```dart
+// Instead of this
+loggo.info('User data: ${user.toJson()}');
+
+// Use this
+loggo.infoData(user.toJson());
+```
+
+## 🔧 Configuration Options
+
+### LoggerConfig Properties
+
+- `minLevel`: Minimum log level to display
+- `enableColors`: Whether to use ANSI colors
+- `enableReleaseLogging`: Whether to log in release builds
+- `formatter`: Custom log formatter
+
+### Theme Customization
+
+```dart
+final theme = const AnsiThemeData.fancy().copyWith(
+  emoji: {
+    LogLevel.info: '🚀',
+    LogLevel.error: '💥',
+  },
+  colors: {
+    LogLevel.warning: AnsiColor.yellow,
+    LogLevel.error: AnsiColor.red,
+  },
 );
 ```
 
-### JSON Logging
+## 📊 Comparison with Other Loggers
 
-```dart
-// Pretty-print JSON data
-final userData = {
-  'id': 1,
-  'name': 'John Doe',
-  'settings': {
-    'theme': 'dark',
-    'notifications': true
-  }
-};
+| Feature         | loggo          | logger      | talker      | loggy       |
+| --------------- | -------------- | ----------- | ----------- | ----------- |
+| **Theming**     | ✅ (3 presets) | ✅ (custom) | ✅ (custom) | ✅ (custom) |
+| **Data-Only**   | ✅             | ❌          | ✅          | ❌          |
+| **Compact DX**  | ✅ (opt-in)    | ❌          | ❌          | ✅          |
+| **Anti-Spam**   | ✅             | ❌          | ✅          | ❌          |
+| **No deps**     | ✅             | ✅          | ✅          | ✅          |
+| **Web Support** | ✅             | ✅          | ✅          | ✅          |
 
-AppLogger.json('User data received', userData);
-```
+## 📝 Notes
 
-### Special Categories
+- **Web**: ANSI colors are disabled by default on the web
+- **File Sink**: The `RollingFileSink` is skipped on the web
+- **Performance**: Logging is disabled in release builds unless `enableReleaseLogging` is true
+- **Memory**: Log records are not stored in memory by default (use sinks for persistence)
 
-```dart
-// Network requests (white with 🌐 icon)
-AppLogger.network('API call completed', data: {
-  'endpoint': '/api/users',
-  'status': 200,
-  'duration': '245ms'
-});
+## 📜 License
 
-// Meeting events (magenta with 🎯 icon)
-AppLogger.meeting('Meeting started', data: {
-  'participants': 5,
-  'duration': '30min'
-});
+This package is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
-// Hand raise events (blue with 🙋 icon)
-AppLogger.handRaise('User raised hand', data: {
-  'userId': 'user123',
-  'timestamp': DateTime.now().toIso8601String()
-});
-```
+---
 
-### Error Logging with Stack Trace
+## ☕️ Support
 
-```dart
-try {
-  // Some risky operation
-  await riskyOperation();
-} catch (e, stackTrace) {
-  AppLogger.error('Operation failed',
-    data: {'error': e.toString()},
-    stackTrace: stackTrace
-  );
-}
-```
+If you like loggo, consider buying me a coffee ❤️
 
-## Log Levels 📊
+[Your BuyMeACoffee Link Here]
 
-| Level     | Icon | Color   | Description                       |
-| --------- | ---- | ------- | --------------------------------- |
-| Debug     | 🔍   | Cyan    | Development debugging information |
-| Info      | ℹ️   | Green   | General information messages      |
-| Success   | ✅   | Green   | Success confirmations             |
-| Warning   | ⚠️   | Yellow  | Warning messages                  |
-| Error     | ❌   | Red     | Error messages                    |
-| Network   | 🌐   | White   | Network-related logs              |
-| Meeting   | 🎯   | Magenta | Meeting-related events            |
-| HandRaise | 🙋   | Blue    | Hand raise events                 |
+## 👨‍💻 Author
 
-## Performance ⚡
-
-BeautyLogger is designed with performance in mind:
-
-- Only active in debug mode (`kDebugMode`)
-- Zero overhead in release builds
-- Efficient JSON formatting
-- Minimal memory footprint
-
-## Contributing 🤝
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License 📄
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-# beauty_logger
+This package was created by Phạm Thanh Thiện and will be upgraded and greatly enhanced over time.

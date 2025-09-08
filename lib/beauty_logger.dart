@@ -1,31 +1,10 @@
-
-
-import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
-import 'package:beauty_logger/src/logger_config.dart';
-import 'package:beauty_logger/src/tagged_logger.dart';
-import 'package:beauty_logger/src/log_record.dart';
-export 'src/log_record.dart';
-export 'src/log_formatter.dart';
-export 'src/ansi_log_formatter.dart';
-export 'src/fake_log_sink.dart';
 
-/// Log levels enum for type safety
-enum LogLevel {
-  debug('DEBUG', 700),
-  info('INFO', 800),
-  success('SUCCESS', 800),
-  warning('WARNING', 900),
-  error('ERROR', 1000),
-  handRaise('HAND_RAISE', 700),
-  meeting('MEETING', 700),
-  network('NETWORK', 700);
-
-  const LogLevel(this.name, this.value);
-  final String name;
-  final int value;
-}
+import 'src/core_logger.dart';
+import 'src/logger_config.dart';
+import 'src/log_record.dart';
+import 'src/tagged_logger.dart';
 
 /// Enhanced logger with colors, JSON formatting, and proper debug console support
 class AppLogger {
@@ -45,7 +24,8 @@ class AppLogger {
     _config = LoggerConfig(
       minLevel: minLevel ?? _config.minLevel,
       enableColors: enableColors ?? _config.enableColors,
-      enableReleaseLogging: enableReleaseLogging ?? _config.enableReleaseLogging,
+      enableReleaseLogging:
+          enableReleaseLogging ?? _config.enableReleaseLogging,
     );
   }
 
@@ -70,18 +50,25 @@ class AppLogger {
     _sinks.remove(sink);
   }
 
-
-
   /// Log info messages (green)
   static void info(String message, {String? name, Object? data}) {
     _log(LogLevel.info, message, name: name, data: data);
   }
 
   /// Log error messages (red)
-  static void error(String message,
-      {String? name, Object? data, StackTrace? stackTrace}) {
-    _log(LogLevel.error, message,
-        name: name, data: data, stackTrace: stackTrace);
+  static void error(
+    String message, {
+    String? name,
+    Object? data,
+    StackTrace? stackTrace,
+  }) {
+    _log(
+      LogLevel.error,
+      message,
+      name: name,
+      data: data,
+      stackTrace: stackTrace,
+    );
   }
 
   /// Log success messages (green)
@@ -113,8 +100,6 @@ class AppLogger {
   static void network(String message, {String? name, Object? data}) {
     _log(LogLevel.network, message, name: name, data: data);
   }
-
-
 
   /// Internal logging method
   static void _log(
@@ -165,8 +150,4 @@ class AppLogger {
       }
     }
   }
-
-
-
-
 }

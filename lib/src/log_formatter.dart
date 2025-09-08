@@ -1,9 +1,8 @@
-import 'package:beauty_logger/src/log_record.dart';
+import 'log_record.dart';
 
-/// Abstract class for formatting log records.
-///
-/// Extend this class to create a custom log formatter.
 abstract class LogFormatter {
+  const LogFormatter();
+
   String format(LogRecord record);
 }
 
